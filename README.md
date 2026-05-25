@@ -22,5 +22,7 @@ tg_render(buffer, datax, datay, 5, &opt);
 char *graph = tg_to_utf8_alloc(buffer, opt.width, opt.height, &copt);
 
 puts(graph);
+
+free(buffer);
 free(graph);
 ```

@@ -282,7 +282,7 @@ void tg_render(tg_cell *buf,
     float maxx = datax[0]; 
     float miny = datay[0];
     float maxy = datay[0];
-    for (size_t i = 0; i < count; i++)
+    for (size_t i = 1; i < count; i++)
     {
         if      (datax[i] < minx) minx = datax[i];
         else if (datax[i] > maxx) maxx = datax[i];
