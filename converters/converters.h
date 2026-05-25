@@ -1,3 +1,4 @@
+#pragma once
 #include "../types.h"
 #include "../canvas/canvas.h"
 
