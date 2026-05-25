@@ -113,7 +113,7 @@ static inline size_t convert_utf8(uint32_t ch, char *out, size_t out_size, char 
 // TODO: more color formats
 static inline int write_color_code(uint32_t bg, uint32_t fg,
                                    uint32_t prevbg, uint32_t prevfg,
-                                   tg_convert_opts *opt,
+                                   const tg_convert_opts *opt,
                                    char *buffer, size_t bufsize,
                                    int *overflow) {
     int char_count = 0;
@@ -162,7 +162,7 @@ static inline int write_color_code(uint32_t bg, uint32_t fg,
 static size_t convert(tg_cell *buf,
                       char *out, size_t out_size,
                       size_t width, size_t height,
-                      tg_convert_opts *opt,
+                      const tg_convert_opts *opt,
                       size_t (*convertfn)(uint32_t ch, char *out, size_t out_size, char empty_char)) {
 
     int end_space_needed = opt->append_color_reset ? 5 : 1;
@@ -216,11 +216,11 @@ void tg_to_canvas(tg_cell *buf, tg_canvas *canvas) {
 }
 
 /// @brief non-ascii characters will be displayed as '?'
-size_t tg_to_ascii(tg_cell *buf, char* out, size_t out_size, size_t width, size_t height, tg_convert_opts *opt) {
+size_t tg_to_ascii(tg_cell *buf, char* out, size_t out_size, size_t width, size_t height, const tg_convert_opts *opt) {
     return convert(buf, out, out_size, width, height, opt, convert_ascii);
 }
 /// @brief invalid utf-8 characters will be displayed as '?' 
-size_t tg_to_utf8(tg_cell *buf, char *out, size_t out_size, size_t width, size_t height, tg_convert_opts *opt) {
+size_t tg_to_utf8(tg_cell *buf, char *out, size_t out_size, size_t width, size_t height, const tg_convert_opts *opt) {
     return convert(buf, out, out_size, width, height, opt, convert_utf8);
 }
 
@@ -243,7 +243,7 @@ static char *alloc_string(size_t count, tg_color_format colorf, int is_utf8, siz
 
 char *convert_alloc(tg_cell *buf,
                     size_t width, size_t height,
-                    tg_convert_opts *opt, int is_utf8) {
+                    const tg_convert_opts *opt, int is_utf8) {
                     // void (*convertfn)(tg_cell*, size_t, size_t, size_t, tg_convert_opts)
 
     size_t k;
@@ -262,10 +262,10 @@ char *convert_alloc(tg_cell *buf,
     return ptr;
 }
 
-char *tg_to_ascii_alloc(tg_cell *buf, size_t width, size_t height, tg_convert_opts *opt) {
+char *tg_to_ascii_alloc(tg_cell *buf, size_t width, size_t height, const tg_convert_opts *opt) {
     return convert_alloc(buf, width, height, opt, 0);
 }
 
-char *tg_to_utf8_alloc(tg_cell *buf, size_t width, size_t height, tg_convert_opts *opt) {
+char *tg_to_utf8_alloc(tg_cell *buf, size_t width, size_t height, const tg_convert_opts *opt) {
     return convert_alloc(buf, width, height, opt, 1);
 }
