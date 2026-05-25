@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-void tg_draw_borders(tg_cell *buffer, tg_point bufsize, border_cells chars) {
+void tg_draw_borders(tg_cell *buffer, tg_point bufsize, tg_border_cells chars) {
     if (bufsize.x * bufsize.y == 0) return;
     int bufcount = bufsize.x * bufsize.y;
 
@@ -40,7 +40,7 @@ int tg_draw_line(tg_cell *buffer,
                tg_point bufsize,
                tg_point start,
                tg_point end,
-               line_cells chars)
+               tg_line_cells chars)
 {
     tg_cell horizontal = chars.horizontal_bottom;
 

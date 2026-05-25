@@ -11,7 +11,7 @@ typedef struct
 } tg_cell;
 
 // ─│┌┐└┘
-#define TG_BORDER_CELLS_SINGLE(bg, fg) (border_cells){ \
+#define TG_BORDER_CELLS_SINGLE(bg, fg) (tg_border_cells){ \
     (tg_cell){0x2500, bg, fg}, \
     (tg_cell){0x2502, bg, fg}, \
     (tg_cell){0x250C, bg, fg}, \
@@ -20,7 +20,7 @@ typedef struct
     (tg_cell){0x2518, bg, fg}  \
 }
 // ━┃┏┓┗┛
-#define TG_BORDER_CELLS_BOLD(bg, fg) (border_cells){ \
+#define TG_BORDER_CELLS_BOLD(bg, fg) (tg_border_cells){ \
     (tg_cell){0x2501, bg, fg}, \
     (tg_cell){0x2503, bg, fg}, \
     (tg_cell){0x250F, bg, fg}, \
@@ -29,7 +29,7 @@ typedef struct
     (tg_cell){0x251B, bg, fg}  \
 }
 // _"|/\  .
-#define TG_LINE_CELLS_ASCII(bg, fg) (line_cells){ \
+#define TG_LINE_CELLS_ASCII(bg, fg) (tg_line_cells){ \
     (tg_cell){0x005F, bg, fg}, \
     (tg_cell){0x0022 bg, fg}, \
     (tg_cell){0x007C bg, fg}, \
@@ -37,7 +37,7 @@ typedef struct
     (tg_cell){0x005C bg, fg} \
 }
 // _‾|/\   .
-#define TG_LINE_CELLS_DEFAULT(bg, fg) (line_cells){ \
+#define TG_LINE_CELLS_DEFAULT(bg, fg) (tg_line_cells){ \
     (tg_cell){0x005F, bg, fg}, \
     (tg_cell){0x203E, bg, fg}, \
     (tg_cell){0x007C, bg, fg}, \
@@ -45,7 +45,7 @@ typedef struct
     (tg_cell){0x005C, bg, fg} \
 }
 // _‾│╱╲
-#define TG_LINE_CELLS_SMOOTH(bg, fg) (line_cells){ \
+#define TG_LINE_CELLS_SMOOTH(bg, fg) (tg_line_cells){ \
     (tg_cell){0x005F, bg, fg}, \
     (tg_cell){0x203E, bg, fg}, \
     (tg_cell){0x2502, bg, fg}, \
@@ -53,14 +53,13 @@ typedef struct
     (tg_cell){0x2572, bg, fg}  \
 }
 // ──│╱╲
-#define TG_LINE_CELLS_SMOOTH_BORDER(bg, fg) (line_cells){ \
+#define TG_LINE_CELLS_SMOOTH_BORDER(bg, fg) (tg_line_cells){ \
     (tg_cell){0x2500, bg, fg}, \
     (tg_cell){0x2500, bg, fg}, \
     (tg_cell){0x2502, bg, fg}, \
     (tg_cell){0x2571, bg, fg}, \
     (tg_cell){0x2572, bg, fg}  \
 }
-
 
 typedef struct {
     tg_cell horizontal;
@@ -69,16 +68,14 @@ typedef struct {
     tg_cell topright;
     tg_cell bottomleft;
     tg_cell bottomright;
-} border_cells;
+} tg_border_cells;
 typedef struct {
     tg_cell horizontal_bottom;
     tg_cell horizontal_top;
     tg_cell vertical;
     tg_cell uptilt;
     tg_cell downtilt;
-} line_cells;
-
-// typedef struct tg_graph;
+} tg_line_cells;
 
 typedef struct
 {
@@ -107,7 +104,7 @@ typedef struct
     tg_line_mode mode;
 
     union {
-        line_cells cells;
+        tg_line_cells cells;
 
         struct {
             float line_density;
@@ -177,7 +174,7 @@ static inline tg_render_opts tg_default_render_opts() {
             .draw = 1,
             .cells = TG_LINE_CELLS_DEFAULT(0, 0x00FF00)
         },
-        .node.draw = 0,
+        .node = {0},
         .grid = {
             .draw = 1,
             .horizontal = {
@@ -224,7 +221,7 @@ static inline tg_render_opts tg_default_render_opts_braille() {
                 .fg = 0x00FF00
             },
         },
-        .node.draw = 0,
+        .node = {0},
         .grid = {
             .draw = 1,
             .horizontal = {

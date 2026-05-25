@@ -241,7 +241,7 @@ static char *alloc_string(size_t count, tg_color_format colorf, int is_utf8, siz
     return p;
 }
 
-char *convert_alloc(tg_cell *buf,
+static char *convert_alloc(tg_cell *buf,
                     size_t width, size_t height,
                     const tg_convert_opts *opt, int is_utf8) {
                     // void (*convertfn)(tg_cell*, size_t, size_t, size_t, tg_convert_opts)
