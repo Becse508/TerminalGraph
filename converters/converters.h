@@ -9,8 +9,8 @@
 
 typedef enum {
     TG_NOCOLOR,
-    // TG_ANSI_16,
-    // TG_ANSI_256, 
+    TG_ANSI_16,
+    TG_ANSI_256, 
     TG_TRUECOLOR
 } tg_color_format;
 

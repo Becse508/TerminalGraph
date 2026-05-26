@@ -1,9 +1,10 @@
 ## Current capabilities:
 - draw simple line graphs only
+- braille/custom characters
 - draw grid
 - draw x/y value indicators
 - ascii/utf8
-- ANSI truecolor only
+- ANSI 16/256/truecolor
 <img width="722" height="380" alt="image" src="https://github.com/user-attachments/assets/e8e44289-d9a6-4eec-9521-398f5041f4ae" />
 
 ## Example code:

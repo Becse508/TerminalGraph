@@ -1,8 +1,6 @@
 #include "converters.h"
 #include <stdlib.h>
 
-#define TRUECOLOR_SIZE 19
-
 // ChatGPT used
 static inline int encode_utf8(uint32_t cp, char *out, size_t out_size)
 {
@@ -53,6 +51,110 @@ static inline int u8_to_dec(char *out, uint8_t v)
     out[2] = '0' + (v % 10);
     return 3;
 }
+
+// --- COLORS ---
+
+static const uint8_t ansi16_rgb[16][3] = {
+    {0,0,0},       // black
+    {205,0,0},     // red
+    {0,205,0},     // green
+    {205,205,0},   // yellow
+    {0,0,205},     // blue
+    {205,0,205},   // magenta
+    {0,205,205},   // cyan
+    {229,229,229}, // white
+
+    {127,127,127}, // bright black
+    {255,0,0},     // bright red
+    {0,255,0},     // bright green
+    {255,255,0},   // bright yellow
+    {0,0,255},     // bright blue
+    {255,0,255},   // bright magenta
+    {0,255,255},   // bright cyan
+    {255,255,255}  // bright white
+};
+static const uint8_t ansi16_fg[16] = {
+    30,31,32,33,34,35,36,37,
+    90,91,92,93,94,95,96,97
+};
+static const uint8_t ansi16_bg[16] = {
+    40,41,42,43,44,45,46,47,
+    100,101,102,103,104,105,106,107
+};
+
+static inline int dist2(uint8_t r, uint8_t g, uint8_t b, const uint8_t c[3]) {
+    int dr = r - c[0];
+    int dg = g - c[1];
+    int db = b - c[2];
+    return dr*dr + dg*dg + db*db;
+}
+
+static inline uint8_t rgb_to_ansi16(uint32_t rgb, int is_bg)
+{
+    int r = TG_R(rgb);
+    int g = TG_G(rgb);
+    int b = TG_B(rgb);
+
+    uint8_t best = 0;
+    int best_d = 1e9;
+
+    for (uint8_t i = 0; i < 16; i++) {
+        int d = dist2(r, g, b, ansi16_rgb[i]);
+        if (d < best_d) {
+            best_d = d;
+            best = i;
+        }
+    }
+
+    return is_bg ? ansi16_bg[best] : ansi16_fg[best];
+}
+
+static inline uint8_t rgb_to_ansi256(uint32_t rgb) {
+    // uint8_t r = TG_R(rgb) * 5 / 255;
+    // uint8_t g = TG_G(rgb) * 5 / 255;
+    // uint8_t b = TG_B(rgb) * 5 / 255;
+
+    uint8_t r = (TG_R(rgb) * 5) >> 8;
+    uint8_t g = (TG_G(rgb) * 5) >> 8;
+    uint8_t b = (TG_B(rgb) * 5) >> 8;
+
+    int n = 16 + 36*r + 6*g + b;
+    return n;
+}
+
+static inline int emit_ansi16(int is_bg, char *out, uint32_t rgb) {
+    char *p = out;
+
+    *p++ = '\x1b';
+    *p++ = '[';
+
+    p += u8_to_dec(p, rgb_to_ansi16(rgb, is_bg));
+    *p++ = 'm';
+
+    return (int)(p - out);
+}
+
+static inline int emit_ansi256(int is_bg, char *out, uint32_t rgb) {
+    char *p = out;
+
+    *p++ = '\x1b';
+    *p++ = '[';
+
+    // 38 (fb) | 48 (bg)
+    if (!is_bg)
+        *p++ = '3';
+    else
+        *p++ = '4';
+
+    *p++ = '8'; *p++ = ';';
+    *p++ = '5'; *p++ = ';'; // 5 = 256 color
+
+    p += u8_to_dec(p, rgb_to_ansi256(rgb));
+    *p++ = 'm';
+
+    return (int)(p - out);
+}
+
 // ChatGPT used
 static inline int emit_truecolor(int is_bg, char *out, uint32_t rgb)
 {
@@ -65,15 +167,14 @@ static inline int emit_truecolor(int is_bg, char *out, uint32_t rgb)
     *p++ = '\x1b';
     *p++ = '[';
 
-    // 38;2; | 48;2;
-    if (!is_bg) {
+    // 38 (fb) | 48 (bg)
+    if (!is_bg)
         *p++ = '3';
-    }
-    else {
+    else
         *p++ = '4';
-    }
+
     *p++ = '8'; *p++ = ';';
-    *p++ = '2'; *p++ = ';';
+    *p++ = '2'; *p++ = ';'; // 2 = truecolor
 
     p += u8_to_dec(p, r);
     *p++ = ';';
@@ -85,6 +186,57 @@ static inline int emit_truecolor(int is_bg, char *out, uint32_t rgb)
 
     return (int)(p - out);
 }
+
+#define ANSI16_SIZE 6
+#define ANSI256_SIZE 11
+#define TRUECOLOR_SIZE 19
+
+static const int (*emits[])(int, char*, uint32_t) = {
+    emit_ansi16, emit_ansi256, emit_truecolor
+};
+static const int color_sizes[] = {
+    0, ANSI16_SIZE, ANSI256_SIZE, TRUECOLOR_SIZE
+};
+
+static inline int write_color_code(uint32_t bg, uint32_t fg,
+                                   uint32_t prevbg, uint32_t prevfg,
+                                   const tg_convert_opts *opt,
+                                   char *buffer, size_t bufsize,
+                                   int *overflow) {
+
+    int (*emit)(int, char*, uint32_t) = emits[opt->color_format - 1];
+    int colsize = color_sizes[opt->color_format];
+
+    int char_count = 0;
+    int c;
+    if (opt->color_format != TG_NOCOLOR) {
+        if (fg != prevfg) {
+            if (char_count + colsize >= bufsize) {
+                *overflow = 1;
+                return char_count;
+            }
+
+            c = emit(0, buffer + char_count, fg);
+            if (c < 0) return char_count;
+            char_count += c;
+        }
+
+        if (bg != prevbg && opt->use_background) {
+            if (char_count + colsize >= bufsize) {
+                *overflow = 1;
+                return char_count;
+            }
+
+            c = emit(0, buffer + char_count, bg);
+            if (c < 0) return char_count;
+            char_count += c;
+        }
+    }
+
+    return char_count;
+}
+
+// --------------
 
 static inline size_t convert_ascii(uint32_t ch, char *out, size_t out_size, char empty_char) {
     if (out_size <= 1) {
@@ -110,40 +262,7 @@ static inline size_t convert_utf8(uint32_t ch, char *out, size_t out_size, char 
     return encode_utf8(ch, out, out_size);
 }
 
-// TODO: more color formats
-static inline int write_color_code(uint32_t bg, uint32_t fg,
-                                   uint32_t prevbg, uint32_t prevfg,
-                                   const tg_convert_opts *opt,
-                                   char *buffer, size_t bufsize,
-                                   int *overflow) {
-    int char_count = 0;
-    int c;
-    if (opt->color_format == TG_TRUECOLOR) {
-        if (fg != prevfg) {
-            if (char_count + TRUECOLOR_SIZE >= bufsize) {
-                *overflow = 1;
-                return char_count;
-            }
 
-            c = emit_truecolor(0, buffer + char_count, fg);
-            if (c < 0) return char_count;
-            char_count += c;
-        }
-
-        if (bg != prevbg && opt->use_background) {
-            if (char_count + TRUECOLOR_SIZE >= bufsize) {
-                *overflow = 1;
-                return char_count;
-            }
-
-            c = emit_truecolor(0, buffer + char_count, bg);
-            if (c < 0) return char_count;
-            char_count += c;
-        }
-    }
-
-    return char_count;
-}
 
 // ugly ahh macro
 #define end_conversion() \
@@ -182,9 +301,12 @@ static size_t convert(tg_cell *buf,
             }
 
             idx = y * width + x;
-            k += write_color_code(buf[idx].bg, buf[idx].fg, bg, fg, opt, &out[k], out_size - k - end_space_needed, &color_overflow);
-            if (color_overflow)
-                end_conversion()
+
+            if (buf[idx].ch != TG_EMPTY) { // dont waste color for empty chars
+                k += write_color_code(buf[idx].bg, buf[idx].fg, bg, fg, opt, &out[k], out_size - k - end_space_needed, &color_overflow);
+                if (color_overflow)
+                    end_conversion()
+            }
             
             bg = buf[idx].bg;
             fg = buf[idx].fg;
@@ -223,16 +345,15 @@ size_t tg_to_utf8(tg_cell *buf, char *out, size_t out_size, size_t width, size_t
     return convert(buf, out, out_size, width, height, opt, convert_utf8);
 }
 
-// TODO: alloc for different color formats
 static inline char *alloc_string(size_t count, tg_color_format colorf, int is_utf8, size_t *out_n)
 {
     size_t n = count;
+    int colorsize = color_sizes[colorf];
 
     if (is_utf8)
         n *= 4;
-
-    if (colorf == TG_TRUECOLOR) // one color code is 19 chars, we need 2
-        n += count * 38;    
+    
+    n += count * colorsize * 2;    
 
     char *p = malloc(n + 1);
 
