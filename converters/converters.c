@@ -170,7 +170,7 @@ static size_t convert(tg_cell *buf,
     
     size_t k = 0;
     size_t tmp_k, idx;
-    uint32_t bg = 0xFFFFFFFF; // nonexistent color code
+    uint32_t bg = 0xFFFFFFFF; // nonexistent color code (32 bits instead of 24)
     uint32_t fg = 0xFFFFFFFF; // so color always emitted at first char
     
     for (size_t y = 0; y < height; y++)
@@ -204,7 +204,7 @@ static size_t convert(tg_cell *buf,
     return k;
 }
 
-/// @brief Buffer size must be at least equal to the canvas size or you're fucked
+/// Buffer size must be at least equal to the canvas size or you're fucked
 void tg_to_canvas(tg_cell *buf, tg_canvas *canvas) {
     for (size_t y = 0; y < canvas->height; y++)
     {
@@ -215,29 +215,29 @@ void tg_to_canvas(tg_cell *buf, tg_canvas *canvas) {
     }
 }
 
-/// @brief non-ascii characters will be displayed as '?'
 size_t tg_to_ascii(tg_cell *buf, char* out, size_t out_size, size_t width, size_t height, const tg_convert_opts *opt) {
     return convert(buf, out, out_size, width, height, opt, convert_ascii);
 }
-/// @brief invalid utf-8 characters will be displayed as '?' 
+
 size_t tg_to_utf8(tg_cell *buf, char *out, size_t out_size, size_t width, size_t height, const tg_convert_opts *opt) {
     return convert(buf, out, out_size, width, height, opt, convert_utf8);
 }
 
 // TODO: alloc for different color formats
-static char *alloc_string(size_t count, tg_color_format colorf, int is_utf8, size_t *out_n)
+static inline char *alloc_string(size_t count, tg_color_format colorf, int is_utf8, size_t *out_n)
 {
     size_t n = count;
 
     if (is_utf8)
         n *= 4;
 
-    if (colorf == TG_TRUECOLOR)
+    if (colorf == TG_TRUECOLOR) // one color code is 19 chars, we need 2
         n += count * 38;
 
     char *p = malloc(n + 1);
-    if (out_n) *out_n = n;
 
+    if (out_n)
+        *out_n = p ? n : 0;
     return p;
 }
 

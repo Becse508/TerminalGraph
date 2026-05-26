@@ -27,7 +27,7 @@ void tg_draw_indicators(tg_cell *buf,
                         float miny, float maxy,
                         const tg_indicator_opts *opt);
 
-/// @brief Renders a graph onto the tg_cell buffer
+/// Renders a graph onto the tg_cell buffer
 void tg_render_minmax(tg_cell *buf,
                       const float *datax, const float *datay, size_t count,
                       float minx, float maxx,
@@ -35,10 +35,10 @@ void tg_render_minmax(tg_cell *buf,
                       const tg_render_opts *opt);
 
 
-/// @brief Renders a graph onto the tg_cell buffer
+/// Renders a graph onto the tg_cell buffer
 void tg_render(tg_cell *buf,
                const float *datax, const float *datay, size_t count,
                const tg_render_opts *opt);
 
-/// @brief Clears a tg_cell buffer
+/// Clears a tg_cell buffer
 void tg_clear(tg_cell *buf, size_t width, size_t height);
