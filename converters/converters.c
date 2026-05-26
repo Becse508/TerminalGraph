@@ -232,13 +232,17 @@ static inline char *alloc_string(size_t count, tg_color_format colorf, int is_ut
         n *= 4;
 
     if (colorf == TG_TRUECOLOR) // one color code is 19 chars, we need 2
-        n += count * 38;
+        n += count * 38;    
 
     char *p = malloc(n + 1);
 
     if (out_n)
         *out_n = p ? n : 0;
     return p;
+}
+
+char *tg_string_alloc(size_t width, size_t height, tg_color_format colorf, int is_utf8, size_t *allocated_size) {
+    return alloc_string(width * height, colorf, is_utf8, allocated_size);
 }
 
 static char *convert_alloc(tg_cell *buf,

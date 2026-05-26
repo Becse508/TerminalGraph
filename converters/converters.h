@@ -38,6 +38,9 @@ size_t tg_to_ascii(tg_cell *buf, char* out, size_t out_size, size_t width, size_
 /// invalid utf-8 characters will be displayed as '?'
 size_t tg_to_utf8(tg_cell *buf, char *out, size_t out_size, size_t width, size_t height, const tg_convert_opts *opt);
 
+/// allocate the maximum possible required memory for your graph
+char *tg_string_alloc(size_t width, size_t height, tg_color_format colorf, int is_utf8, size_t *allocated_size);
+
 /// non-ascii characters will be displayed as '?'
 char *tg_to_ascii_alloc(tg_cell *buf, size_t width, size_t height, const tg_convert_opts *opt);
 /// invalid utf-8 characters will be displayed as '?'
