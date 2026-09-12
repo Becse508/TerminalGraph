@@ -1,5 +1,5 @@
 #pragma once
-#include "types.h"
-#include "graph/graph.h"
-#include "converters/converters.h"
+#include "defs.h"
+#include "graph.h"
+#include "converters.h"
 
