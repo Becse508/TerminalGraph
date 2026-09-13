@@ -1,8 +1,11 @@
+#include <math.h>
 #include <string.h>
 #include "buffer.h"
 #include "defs.h"
 #include "drawing.h"
 #include "graph.h"
+
+// TODO: fix heap corruption on too small buffer size :p
 
 static tg_point calc_node_pos(tg_rect area, float datax, float datay, float minx, float miny, float dx, float dy) {
     int sizex = area.right - area.left - 1;
@@ -14,9 +17,8 @@ static tg_point calc_node_pos(tg_rect area, float datax, float datay, float minx
     return (tg_point){x, y};
 }
 
-// TODO: variable decimal length
-// 99% ChatGPT
-static void tg_parse_float(tg_cell *out, float value, int max_cells, uint32_t bg, uint32_t fg)
+// 70% AI
+static void tg_parse_float(tg_cell *out, float value, int decimal_places, int max_cells, uint32_t bg, uint32_t fg)
 {
     int i = 0;
 
@@ -29,26 +31,23 @@ static void tg_parse_float(tg_cell *out, float value, int max_cells, uint32_t bg
     }
 
     int int_part = (int)value;
-    float frac = value - (float)int_part;
-
-    // scale to 2 decimals
-    int frac_part = (int)(frac * 100.0f + 0.5f);
-
+    
+    
     // write integer part
-    char buf[12];
-    int n = 0;
-
     do {
-        buf[n++] = '0' + (int_part % 10);
-        int_part /= 10;
-    } while (int_part);
-
-    while (n-- && i < max_cells) {
-        out[i].ch = buf[n];
+        out[i].ch = '0' + (int_part % 10);
         out[i].fg = fg;
         out[i].bg = bg;
         i++;
-    }
+        int_part /= 10;
+    } while (int_part && i < max_cells - 1);
+    
+    if (decimal_places <= 0)
+        return;
+
+    float frac = value - (float)int_part;
+    int frac_part = (int)(frac * pow(10, decimal_places - 1) + 0.5f);
+
 
     // decimal point
     if (i < max_cells) {
@@ -58,8 +57,8 @@ static void tg_parse_float(tg_cell *out, float value, int max_cells, uint32_t bg
         i++;
     }
 
-    // fractional part (always 2 digits)
-    int div = 100;
+    // fractional part
+    int div = pow(10, decimal_places - 1);
     while (div && i < max_cells) {
         out[i].ch = '0' + (frac_part / div) % 10;
         out[i].fg = fg;
@@ -220,7 +219,12 @@ void tg_draw_indicators(tg_cell *buf,
 
             int row = tg_map_y(area, i, opt->y.count);
 
-            tg_parse_float(&buf[width * row], value, (int)width, opt->y.bg, opt->y.fg);
+            tg_parse_float(&buf[width * row],
+                        value,
+                        opt->x.decimal_places,
+                        (int)width,
+                        opt->y.bg,
+                        opt->y.fg);
         }
     }
 
@@ -238,6 +242,7 @@ void tg_draw_indicators(tg_cell *buf,
 
             tg_parse_float(&buf[width * row + col],
                         value,
+                        opt->x.decimal_places,
                         (int)(width - col),
                         opt->x.bg,
                         opt->x.fg);

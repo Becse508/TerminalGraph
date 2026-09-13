@@ -175,11 +175,13 @@ typedef struct {
 typedef struct {
     struct {
         int count;
+        int decimal_places;
         uint32_t bg;
         uint32_t fg;
     } x;
     struct {
         int count;
+        int decimal_places;
         uint32_t bg;
         uint32_t fg;
     } y;
@@ -259,11 +261,13 @@ static inline tg_render_opts tg_default_render_opts() {
         .indicator = {
             .x = {
                 .count = 10,
+                .decimal_places = 2,
                 .bg = 0,
                 .fg = 0xFF0000
             },
             .y = {
                 .count = 5,
+                .decimal_places = 2,
                 .bg = 0,
                 .fg = 0xFF0000
             }

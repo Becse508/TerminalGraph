@@ -359,7 +359,7 @@ static inline char *alloc_string(size_t count, tg_color_format colorf, int is_ut
     n += count * colorsize * 2;    
     n += 4; // +4 for color reset
 
-    char *p = malloc(n + 1);
+    char *p = malloc(sizeof(char) * n + 1);
 
     if (out_n)
         *out_n = p ? n : 0;

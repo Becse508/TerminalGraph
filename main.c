@@ -13,12 +13,15 @@
 #include "termgraph.h"
 
 
-#if defined(__has_include)
+#if defined(__unix__) && defined(__has_include)
 #  if __has_include(<sys/ioctl.h>)
 #    include <sys/ioctl.h>
+#    include <unistd.h>
 #    define HAVE_SYS_IOCTL_H
 #  endif
 #endif
+
+
 
 const char *argp_program_version = "0.1";
 const char *argp_program_bug_address = "<https://github.com/Becse508/TerminalGraph/issues>";
@@ -76,14 +79,16 @@ static struct argp_option options[] = {
     {"grid-background", 414, "COLOR", 0, "Grid background RGB color in base 16 (e.g. 0xffffff)."},
     {"gbg",             414, 0, OPTION_ALIAS},
 
-    {"indicator-vertical",      421, "COUNT", 0, "How many number indicators to draw at the side of the graph horizontally."},
+    {"indicator-vertical",      421, "COUNT", 0, "How many number indicators to draw at the bottom of the graph."},
     {"iv",                      421, 0, OPTION_ALIAS},
-    {"indicator-horizontal",    422, "COUNT", 0, "How many number indicators to draw at the side of the graph vertically."},
+    {"indicator-horizontal",    422, "COUNT", 0, "How many number indicators to draw at the side of the graph."},
     {"ih",                      422, 0, OPTION_ALIAS},
     {"indicator-foreground",    423, "COLOR", 0, "Number indicator foreground RGB color in base 16 (e.g. 0xffffff)."},
     {"ifg",                     423, 0, OPTION_ALIAS},
     {"indicator-background",    424, "COLOR", 0, "Number indicator background RGB color in base 16 (e.g. 0xffffff)."},
     {"ibg",                     424, 0, OPTION_ALIAS},
+    {"indicator-decimals",      425, "N", 0, "How many decimal places the indicators should have."},
+    {"id",                      425, 0, OPTION_ALIAS},
     
     {0}
 };
@@ -97,6 +102,11 @@ static int skip = 0;
 static tg_render_opts opt;
 static tg_convert_opts copt;
 
+#define ERROR(arg) \
+    do { \
+        fprintf(stderr, "Invalid argument '%s'\n", arg); \
+        exit(EINVAL); \
+    } while (0);\
 
 #define SET_GRID_COL(cells, channel, val) \
     cells.bottom.channel = val; \
@@ -111,20 +121,20 @@ static tg_convert_opts copt;
 // parsed integers cannot be negative
 #define _PARSE_INT(var, base, arg) \
     var = strtol(arg, &end, base); \
-    if ((*end && *end != '\n') || var == INT_MAX || var < 0) { return EINVAL; } 
+    if ((*end && *end != '\n') || var == INT_MAX || var < 0) ERROR(arg)
+
+#define PARSE_INT(var) _PARSE_INT(var, 10, arg)
+
+#define PARSE_INT_NONZERO(var) \
+    var = strtol(arg, 0, 10); \
+    if (var == 0 || var == INT_MAX || var < 1) ERROR(arg) 
 
 #define PARSE_COLOR(var) _PARSE_INT(var, 16, arg)
-
-#define PARSE_INT(var) \
-    var = strtol(arg, 0, 10); \
-    if (var == 0 || var == INT_MAX || var < 1) { return EINVAL; } 
-
 
 #define PARSE_FLOAT(var) \
     errno = 0; \
     var = strtof(arg, &end); \
-    if ((*end && *end != '\n') || var == HUGE_VAL || var == HUGE_VALF || var == HUGE_VALL) {return EINVAL;}
-
+    if ((*end && *end != '\n') || var == HUGE_VAL || var == HUGE_VALF || var == HUGE_VALL) ERROR(arg)
 
 
 struct arguments {
@@ -135,7 +145,7 @@ char *format_names[] = {"NOCOLOR", "TRUECOLOR", "ANSI16", "ANSI256"};
 tg_color_format format_vals[] = {TG_NOCOLOR, TG_TRUECOLOR, TG_ANSI_16, TG_ANSI_256};
 
 
-static error_t parse(int key, char *arg, struct argp_state *state) {
+static error_t parse_opts(int key, char *arg, struct argp_state *state) {
     char *end; // used for number parsing
 
     switch (key) {
@@ -146,9 +156,9 @@ static error_t parse(int key, char *arg, struct argp_state *state) {
             PARSE_INT(skip); break;
         
         case 'w':
-            PARSE_INT(opt.width) break;
+            PARSE_INT_NONZERO(opt.width) break;
         case 'h':
-            PARSE_INT(opt.height) break;
+            PARSE_INT_NONZERO(opt.height) break;
         
         case 501:
             for (int i = 0; i < 4; i++) {
@@ -162,13 +172,13 @@ static error_t parse(int key, char *arg, struct argp_state *state) {
             break;
         
         case 300:
-            PARSE_INT(opt.padding.left) break;
+            PARSE_INT_NONZERO(opt.padding.left) break;
         case 301:
-            PARSE_INT(opt.padding.right) break;
+            PARSE_INT_NONZERO(opt.padding.right) break;
         case 302:
-            PARSE_INT(opt.padding.top) break;
+            PARSE_INT_NONZERO(opt.padding.top) break;
         case 303:
-            PARSE_INT(opt.padding.bottom) break;
+            PARSE_INT_NONZERO(opt.padding.bottom) break;
         
         case 200:
             PARSE_FLOAT(opt.x.min.value) opt.x.min.unset = 0; break;
@@ -219,6 +229,10 @@ static error_t parse(int key, char *arg, struct argp_state *state) {
             PARSE_COLOR(opt.indicator.x.bg)
             SET_INDICATOR_COL(bg, opt.indicator.x.bg)
             break;
+        case 425:
+            PARSE_INT(opt.indicator.x.decimal_places)
+            opt.indicator.y.decimal_places = opt.indicator.x.decimal_places;
+            break;
 
         case ARGP_KEY_ARG:
             if (state->arg_num >= 2)
@@ -239,7 +253,7 @@ static error_t parse(int key, char *arg, struct argp_state *state) {
     return 0;
 }
 
-static struct argp argp = {options, parse, args_doc, doc};
+static struct argp argp = {options, parse_opts, args_doc, doc};
 
 
 
@@ -248,13 +262,10 @@ int main(int argc, char *argv[]) {
     opt = tg_default_render_opts_braille();
     copt = tg_default_convert_opts();
     
-    // get terminal size on unix
-    #if defined(__unix__) && defined(HAVE_SYS_IOCTL_H) && defined(TIOCGWINSZ)
-    #include <sys/ioctl.h>
-    #include <unistd.h>
+    // get terminal size on unix with ioctl
+    #if defined(HAVE_SYS_IOCTL_H) && defined(TIOCGWINSZ)
     
     struct winsize w;
-
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0) {
         opt.width = w.ws_col;
         opt.height = w.ws_row - 4;
@@ -273,6 +284,7 @@ int main(int argc, char *argv[]) {
     tg_clear(buffer, opt.width, opt.height);
     tg_render(buffer, datax.data, datay.data, datax.count, &opt);
     
+    char *output = tg_to_utf8_alloc(buffer, opt.width, opt.height, &copt);
 
     FILE *stream = stdout;
     if (output_file != 0) {
@@ -284,9 +296,8 @@ int main(int argc, char *argv[]) {
             return 1;
         }
     }
-    char *output = tg_to_utf8_alloc(buffer, opt.width, opt.height, &copt);
     fputs(output, stream);
-    
+
     if (stream != stdout)
         fclose(stream);
 
