@@ -249,9 +249,7 @@ int main(int argc, char *argv[]) {
     copt = tg_default_convert_opts();
     
     // get terminal size on unix
-    #ifdef HAVE_SYS_IOCTL_H
-    #ifdef TIOCGWINSZ
-
+    #if defined(__unix__) && defined(HAVE_SYS_IOCTL_H) && defined(TIOCGWINSZ)
     #include <sys/ioctl.h>
     #include <unistd.h>
     
@@ -261,8 +259,6 @@ int main(int argc, char *argv[]) {
         opt.width = w.ws_col;
         opt.height = w.ws_row - 4;
     }
-
-    #endif
     #endif
 
     argp_parse(&argp, argc, argv, 0, 0, &args);
@@ -277,9 +273,25 @@ int main(int argc, char *argv[]) {
     tg_clear(buffer, opt.width, opt.height);
     tg_render(buffer, datax.data, datay.data, datax.count, &opt);
     
-    putchar('\n');
-    puts(tg_to_utf8_alloc(buffer, opt.width, opt.height, &copt));
+
+    FILE *stream = stdout;
+    if (output_file != 0) {
+        stream = fopen(output_file, "w");
+        if (stream == 0) {
+            fprintf(stderr, "failed to open file '%s'", output_file);
+            vector_float_destroy(&datax);
+            vector_float_destroy(&datay);
+            return 1;
+        }
+    }
+    char *output = tg_to_utf8_alloc(buffer, opt.width, opt.height, &copt);
+    fputs(output, stream);
     
+    if (stream != stdout)
+        fclose(stream);
+
+    free(buffer);
+    free(output);
     vector_float_destroy(&datax);
     vector_float_destroy(&datay);
     return 0;

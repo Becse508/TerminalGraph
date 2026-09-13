@@ -1,4 +1,4 @@
-CFLAGS = -Wall -Wextra
+CFLAGS = -O0 -g -Wall -Wextra
 LDLIBS = -lm
 
 objects = buffer.o canvas.o converters.o drawing.o graph.o
