@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "converters.h"
 #include "defs.h"
 #include "parser.h"
@@ -33,7 +34,7 @@ static struct argp_option options[] = {
 
     // CONVERT OPTIONS
     {"color-format",            501, "FORMAT", 0, "How the output should be colored. Possible values for FORMAT: NOCOLOR, TRUECOLOR, ANSI16, ANSI256. Default: TRUECOLOR"},
-    {"cf",                      501, 0, 0},
+    {"cf",                      501, 0, OPTION_ALIAS},
     {"use-background",          502, 0, 0, "Turn on background coloring. Setting any background color turns this on. Turned off by default."},
     {"dont-append-color-reset", 503, 0, 0, "Doesn't append the ANSI color reset sequence (\"\\x1b[0m\") after the last character. This will cause the console to stay colored after displaying the graph."},
     {"empty-char",              504, "CHAR", 0, "Sets what the program uses for empty space in the graph. Default is a space character (' ')."},
@@ -130,6 +131,10 @@ struct arguments {
     char *args[2];
 };
 
+char *format_names[] = {"NOCOLOR", "TRUECOLOR", "ANSI16", "ANSI256"};
+tg_color_format format_vals[] = {TG_NOCOLOR, TG_TRUECOLOR, TG_ANSI_16, TG_ANSI_256};
+
+
 static error_t parse(int key, char *arg, struct argp_state *state) {
     char *end; // used for number parsing
 
@@ -144,6 +149,17 @@ static error_t parse(int key, char *arg, struct argp_state *state) {
             PARSE_INT(opt.width) break;
         case 'h':
             PARSE_INT(opt.height) break;
+        
+        case 501:
+            for (int i = 0; i < 4; i++) {
+                if (strcmp(arg, format_names[i]) == 0) {
+                    copt.color_format = format_vals[i];
+                    return 0;
+                }
+            }
+            fprintf(stderr, "Invalid color format\n");
+            return 1;
+            break;
         
         case 300:
             PARSE_INT(opt.padding.left) break;

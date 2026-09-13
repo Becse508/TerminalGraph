@@ -1,5 +1,5 @@
 .vscode
 test*
 drawing_canvas.c
-tgcli
+tg
 *.o

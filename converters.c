@@ -205,34 +205,35 @@ static inline int write_color_code(uint32_t bg, uint32_t fg,
                                    char *buffer, size_t bufsize,
                                    int *overflow) {
     
+    if (opt->color_format == TG_NOCOLOR)
+        return 0;
+
     // get the right emit func and color code size
     int (*emit)(int, char*, uint32_t) = emits[opt->color_format - 1];
     int colsize = color_sizes[opt->color_format];
 
     int char_count = 0;
     int c;
-    if (opt->color_format != TG_NOCOLOR) {
-        if (fg != prevfg) {
-            if (char_count + colsize >= bufsize) {
-                *overflow = 1;
-                return char_count;
-            }
-
-            c = emit(0, buffer + char_count, fg);
-            if (c < 0) return char_count;
-            char_count += c;
+    if (fg != prevfg) {
+        if (char_count + colsize >= bufsize) {
+            *overflow = 1;
+            return char_count;
         }
 
-        if (bg != prevbg && opt->use_background) {
-            if (char_count + colsize >= bufsize) {
-                *overflow = 1;
-                return char_count;
-            }
+        c = emit(0, buffer + char_count, fg);
+        if (c < 0) return char_count;
+        char_count += c;
+    }
 
-            c = emit(0, buffer + char_count, bg);
-            if (c < 0) return char_count;
-            char_count += c;
+    if (bg != prevbg && opt->use_background) {
+        if (char_count + colsize >= bufsize) {
+            *overflow = 1;
+            return char_count;
         }
+
+        c = emit(0, buffer + char_count, bg);
+        if (c < 0) return char_count;
+        char_count += c;
     }
 
     return char_count;
@@ -356,6 +357,7 @@ static inline char *alloc_string(size_t count, tg_color_format colorf, int is_ut
         n *= 4;
     
     n += count * colorsize * 2;    
+    n += 4; // +4 for color reset
 
     char *p = malloc(n + 1);
 
