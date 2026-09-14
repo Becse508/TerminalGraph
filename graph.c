@@ -5,8 +5,6 @@
 #include "drawing.h"
 #include "graph.h"
 
-// TODO: fix heap corruption on too small buffer size :p
-
 static tg_point calc_node_pos(tg_rect area, float datax, float datay, float minx, float miny, float dx, float dy) {
     int sizex = area.right - area.left - 1;
     int sizey = area.bottom - area.top - 1;

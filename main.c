@@ -26,7 +26,7 @@
 const char *argp_program_version = "0.1";
 const char *argp_program_bug_address = "<https://github.com/Becse508/TerminalGraph/issues>";
 static char doc[] = 
-    "The CLI tool for termgraph";
+    "Draw graphs in the terminal";
 
 static char args_doc[] = "INPUT_FILE INPUT_FORMAT";
 
@@ -53,8 +53,7 @@ static struct argp_option options[] = {
     {"padding-top",     302, "INT", 0, "Top padding."},
     {"pt",              302, 0, OPTION_ALIAS},
     {"padding-bottom",  303, "INT", 0, "Bottom padding."},
-    {"pb",             303, 0, OPTION_ALIAS},
-    
+    {"pb",              303, 0, OPTION_ALIAS},
 
     // DATA
     {"minx", 200, "FLOAT", 0, "The lowest X value on the graph. Lines going under will be clipped. Default: unset (auto)"},
@@ -70,9 +69,9 @@ static struct argp_option options[] = {
     {"bg",          404, 0, OPTION_ALIAS},
     
     {"no-crosses",      415, 0, 0, "DON'T draw 'cross' characters where 2 grid lines intersect to smoothly connect them."},
-    {"grid-vertical",   411, "COUNT", 0, "How many grid lines to draw vertically. Sets `indicator-vertical` to the same value. 0 to disable."},
+    {"grid-vertical",   411, "COUNT", 0, "How many grid lines to draw vertically. Sets --indicator-vertical to the same value. 0 to disable."},
     {"gv",              411, 0, OPTION_ALIAS},
-    {"grid-horizontal", 412, "COUNT", 0, "How many grid lines to draw horizontally. Sets `indicator-horizontal` to the same value. 0 to disable."},
+    {"grid-horizontal", 412, "COUNT", 0, "How many grid lines to draw horizontally. Sets --indicator-horizontal to the same value. 0 to disable."},
     {"gh",              412, 0, OPTION_ALIAS},
     {"grid-foreground", 413, "COLOR", 0, "Grid foreground RGB color in base 16 (e.g. 0xffffff)."},
     {"gfg",             413, 0, OPTION_ALIAS},
@@ -90,14 +89,16 @@ static struct argp_option options[] = {
     {"indicator-decimals",      425, "N", 0, "How many decimal places the indicators should have."},
     {"id",                      425, 0, OPTION_ALIAS},
     
+    // SHORTHANDS
+    {"padding", 'p', "INT", 0, "Set all padding values."},
+    {0, 'G', 0, 0, "Don't draw grid. Doesnt't turn off indicators like setting --grid-horizontal and --grid-vertical to 0 would."},
+    {0, 'I', 0, 0, "Don't draw indicators. Equivalent to setting --indicator-horizontal and --indicator-vertical to 0."},
     {0}
 };
 
 
 
 static char *output_file;
-static char *input_format;
-static char *input_file;
 static int skip = 0;
 static tg_render_opts opt;
 static tg_convert_opts copt;
@@ -172,14 +173,20 @@ static error_t parse_opts(int key, char *arg, struct argp_state *state) {
             break;
         
         case 300:
-            PARSE_INT_NONZERO(opt.padding.left) break;
+            PARSE_INT(opt.padding.left) break;
         case 301:
-            PARSE_INT_NONZERO(opt.padding.right) break;
+            PARSE_INT(opt.padding.right) break;
         case 302:
-            PARSE_INT_NONZERO(opt.padding.top) break;
+            PARSE_INT(opt.padding.top) break;
         case 303:
-            PARSE_INT_NONZERO(opt.padding.bottom) break;
-        
+            PARSE_INT(opt.padding.bottom) break;
+        case 'p':
+            PARSE_INT(opt.padding.left)
+            opt.padding.right = opt.padding.left;
+            opt.padding.top = opt.padding.left;
+            opt.padding.bottom = opt.padding.left;
+            break;
+
         case 200:
             PARSE_FLOAT(opt.x.min.value) opt.x.min.unset = 0; break;
         case 201:
@@ -234,6 +241,16 @@ static error_t parse_opts(int key, char *arg, struct argp_state *state) {
             opt.indicator.y.decimal_places = opt.indicator.x.decimal_places;
             break;
 
+        case 'G':
+            opt.grid.horizontal.count = 0;
+            opt.grid.vertical.count = 0;
+            break;
+        case 'I':
+            opt.indicator.x.count = 0;
+            opt.indicator.y.count = 0;
+            break;
+            
+
         case ARGP_KEY_ARG:
             if (state->arg_num >= 2)
                 argp_usage (state);
@@ -274,6 +291,12 @@ int main(int argc, char *argv[]) {
 
     argp_parse(&argp, argc, argv, 0, 0, &args);
     
+    if (opt.padding.right + opt.padding.left   > opt.width ||
+        opt.padding.top   + opt.padding.bottom > opt.height) {
+        fputs("Padding cannot be bigger than width/height!\n", stderr);
+        return 1;
+    }
+
     vector_float datax, datay;
     vector_float_init(&datax);
     vector_float_init(&datay);
