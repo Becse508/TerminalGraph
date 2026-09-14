@@ -148,11 +148,11 @@ typedef enum {
     // TG_STEP_BRAILLE,
     // TR_PILLAR_CELLS,
     // TG_PILLAR_BRAILLE,
-} tg_line_mode;
+} tg_line_type;
 
 typedef struct
 {
-    tg_line_mode mode;
+    tg_line_type type;
 
     union {
         tg_line_cells line_cells; // used if mode is TG_LINE_CELLS
@@ -289,7 +289,7 @@ static inline tg_render_opts tg_default_render_opts() {
 
 static inline tg_render_opts tg_default_render_opts_line(uint32_t bg, uint32_t fg) {
     tg_render_opts opt = tg_default_render_opts();
-    opt.line.mode = TG_LINE_CELLS;
+    opt.line.type = TG_LINE_CELLS;
     opt.line.line_cells = TG_LINE_CELLS_DEFAULT(bg, fg);
     return opt;
 }
@@ -297,7 +297,7 @@ static inline tg_render_opts tg_default_render_opts_line(uint32_t bg, uint32_t f
 static inline tg_render_opts tg_default_render_opts_braille(uint32_t bg, uint32_t fg) {
     tg_render_opts opt = tg_default_render_opts();
     opt.line = (tg_line_opts){
-        .mode = TG_LINE_BRAILLE,
+        .type = TG_LINE_BRAILLE,
         .braille = {
             .density = 1,
             .bg = bg,
@@ -308,7 +308,7 @@ static inline tg_render_opts tg_default_render_opts_braille(uint32_t bg, uint32_
 }
 static inline tg_render_opts tg_default_render_opts_steps(uint32_t bg, uint32_t fg) {
     tg_render_opts opt = tg_default_render_opts();
-    opt.line.mode = TG_STEP_CELLS;
+    opt.line.type = TG_STEP_CELLS;
     opt.line.step_cells = TG_BORDER_CELLS_ROUNDED(bg, fg);
     return  opt;
 }

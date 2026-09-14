@@ -141,6 +141,22 @@ void tg_draw_grid(tg_cell *buf,
     }
 }
 
+/* this is needed because different line drawing functions
+   have to be differently exclusive/inclusive with their
+   start/end points to draw/not draw over previous lines
+*/
+static inline void tailor_area(tg_rect *area, tg_line_type type) {
+    if (type == TG_LINE_BRAILLE || type == TG_LINE_CELLS)
+        area->left++;
+    
+    if (type == TG_LINE_BRAILLE || type == TG_LINE_CELLS || type == TG_STEP_CELLS)
+        area->right--;
+}
+static inline void tailor_area_inclusive(tg_rect *area, tg_line_type type) {
+    if (type == TG_STEP_CELLS)
+        area->left--;
+}
+
 void tg_draw_lines(tg_cell *buf,
                    int width, int height, tg_rect area,
                    const float *datax, const float *datay, size_t count,
@@ -159,18 +175,19 @@ void tg_draw_lines(tg_cell *buf,
     if (dx == 0) dx = 1;
     if (dy == 0) dy = 1;
 
+    tailor_area_inclusive(&area, opt->type);
 
     prev_pos = calc_node_pos(area, datax[0], datay[0], m.minx, m.miny, dx, dy);
     for (size_t i = 1; i < count; i++)
     {
         current_pos = calc_node_pos(area, datax[i], datay[i], m.minx, m.miny, dx, dy);
-        if (opt->mode == TG_LINE_CELLS) {
+        if (opt->type == TG_LINE_CELLS) {
             tg_draw_line(buf, bufsize, prev_pos, current_pos, opt->line_cells);
         }
-        else if (opt->mode == TG_LINE_BRAILLE) {
+        else if (opt->type == TG_LINE_BRAILLE) {
             tg_draw_line_braille(buf, bufsize, prev_pos, current_pos, opt->braille.bg, opt->braille.fg, opt->braille.density);
         }
-        else if (opt->mode == TG_STEP_CELLS) {
+        else if (opt->type == TG_STEP_CELLS) {
             tg_draw_steps(buf, bufsize, prev_pos, current_pos, opt->step_cells);
         }
 
@@ -270,7 +287,7 @@ void tg_render_minmax(tg_cell *buf,
     if (opt->grid.vertical.count > 0 || opt->grid.horizontal.count > 0) {
         tg_draw_grid(buf, opt->width, area, &opt->grid);
     }
-    if (opt->line.mode != TG_NODRAW) {
+    if (opt->line.type != TG_NODRAW) {
         tg_draw_lines(buf,
                       opt->width, opt->height, area,
                       datax, datay, count,

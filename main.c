@@ -34,6 +34,7 @@ static struct argp_option options[] = {
     // BASIC
     {"output",  'o', "FILE", 0, "Output to FILE instead of standard output."},
     {"skip", 's', "COUNT", 0, "Skip COUNT lines before starting to read data from the file."},
+    {"type", 't', "TYPE", 0, "Specifies what graph type to use. Possible values: LINE, LINE_BRAILLE [default], STEP"},
 
     // CONVERT OPTIONS
     {"color-format",            501, "FORMAT", 0, "How the output should be colored. Possible values for FORMAT: NOCOLOR, TRUECOLOR, ANSI16, ANSI256. Default: TRUECOLOR"},
@@ -67,7 +68,8 @@ static struct argp_option options[] = {
     {"fg",          403, 0, OPTION_ALIAS},
     {"background",  404, "COLOR", 0, "Background RGB color in base 16 (e.g. 0xffffff)."},
     {"bg",          404, 0, OPTION_ALIAS},
-    
+    {"density",     405, "FLOAT", 0, "The density of braille dots in lines. Only applies if --type is set to a braille type"},
+
     {"no-crosses",      415, 0, 0, "DON'T draw 'cross' characters where 2 grid lines intersect to smoothly connect them."},
     {"grid-vertical",   411, "COUNT", 0, "How many grid lines to draw vertically. Sets --indicator-vertical to the same value. 0 to disable."},
     {"gv",              411, 0, OPTION_ALIAS},
@@ -140,14 +142,30 @@ static tg_convert_opts copt;
 
 struct arguments {
     char *args[2];
+    uint32_t fg, bg; // these are copied into opt after argument parsing completes, since we need to know the graph type
 };
 
+static inline struct arguments default_arguments() {
+    return (struct arguments){
+        .bg = 0,
+        .fg = 0x00FF00,
+    };
+}
+
+
+#define NFORMATS 4
 char *format_names[] = {"NOCOLOR", "TRUECOLOR", "ANSI16", "ANSI256"};
-tg_color_format format_vals[] = {TG_NOCOLOR, TG_TRUECOLOR, TG_ANSI_16, TG_ANSI_256};
+tg_color_format format_values[] = {TG_NOCOLOR, TG_TRUECOLOR, TG_ANSI_16, TG_ANSI_256};
+
+#define NTYPES 3
+char *type_names[] = {"LINE", "LINE_BRAILLE", "STEP"};
+tg_line_type type_values[] = {TG_LINE_CELLS, TG_LINE_BRAILLE, TG_STEP_CELLS};
 
 
 static error_t parse_opts(int key, char *arg, struct argp_state *state) {
     char *end; // used for number parsing
+
+    struct arguments *a = state->input;
 
     switch (key) {
 
@@ -155,6 +173,16 @@ static error_t parse_opts(int key, char *arg, struct argp_state *state) {
             output_file = arg; break;
         case 's':
             PARSE_INT(skip); break;
+        case 't':
+            for (int i = 0; i < NTYPES; i++) {
+                if (strcmp(arg, type_names[i]) == 0) {
+                    opt.line.type = type_values[i];
+                    return 0;
+                }
+            }
+            fprintf(stderr, "Invalid color format\n");
+            exit(1);
+            break;
         
         case 'w':
             PARSE_INT_NONZERO(opt.width) break;
@@ -162,9 +190,9 @@ static error_t parse_opts(int key, char *arg, struct argp_state *state) {
             PARSE_INT_NONZERO(opt.height) break;
         
         case 501:
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < NFORMATS; i++) {
                 if (strcmp(arg, format_names[i]) == 0) {
-                    copt.color_format = format_vals[i];
+                    copt.color_format = format_values[i];
                     return 0;
                 }
             }
@@ -211,10 +239,12 @@ static error_t parse_opts(int key, char *arg, struct argp_state *state) {
             PARSE_FLOAT(opt.y.max.value) opt.y.max.unset = 0; break;
         
         case 403:
-            PARSE_COLOR(opt.line.braille.fg) break;
+            PARSE_COLOR(a->fg) break;
         case 404:
             copt.use_background = 1;
-            PARSE_COLOR(opt.line.braille.bg) break;
+            PARSE_COLOR(a->bg) break;
+        case 405:
+            PARSE_FLOAT(opt.line.braille.density) break;
         case 415:
             opt.grid.draw_crosses = 0; break;
         case 411:
@@ -286,10 +316,20 @@ static error_t parse_opts(int key, char *arg, struct argp_state *state) {
 
 static struct argp argp = {options, parse_opts, args_doc, doc};
 
+static inline void set_colors(uint32_t bg, uint32_t fg, tg_line_opts *opt) {
+    if (opt->type == TG_LINE_BRAILLE) {
+        opt->braille.bg = bg;
+        opt->braille.fg = fg;
+    }
+    else if (opt->type == TG_LINE_CELLS)
+        opt->line_cells = TG_LINE_CELLS_DEFAULT(bg, fg);
+    else if (opt->type == TG_STEP_CELLS)
+        opt->step_cells = TG_BORDER_CELLS_ROUNDED(bg, fg);
+}
 
 
 int main(int argc, char *argv[]) {
-    struct arguments args;
+    struct arguments args = default_arguments();
     opt = tg_default_render_opts_braille(0, 0x00FF00);
     copt = tg_default_convert_opts();
     
@@ -310,6 +350,8 @@ int main(int argc, char *argv[]) {
         fputs("Padding cannot be bigger than width/height!\n", stderr);
         return 1;
     }
+
+    set_colors(args.bg, args.fg, &opt.line);
 
     vector_float datax, datay;
     vector_float_init(&datax);
