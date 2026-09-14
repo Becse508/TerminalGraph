@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdlib.h>
 #include "converters.h"
 
@@ -91,9 +92,9 @@ static inline int dist2(uint8_t r, uint8_t g, uint8_t b, const uint8_t c[3]) {
 
 static inline uint8_t rgb_to_ansi16(uint32_t rgb, int is_bg)
 {
-    int r = TG_R(rgb);
-    int g = TG_G(rgb);
-    int b = TG_B(rgb);
+    uint8_t r = TG_R(rgb);
+    uint8_t g = TG_G(rgb);
+    uint8_t b = TG_B(rgb);
 
     uint8_t best = 0;
     int best_d = 1e9;
@@ -119,7 +120,7 @@ static inline uint8_t rgb_to_ansi256(uint32_t rgb) {
     uint8_t g = (TG_G(rgb) * 5) >> 8;
     uint8_t b = (TG_B(rgb) * 5) >> 8;
 
-    int n = 16 + 36*r + 6*g + b;
+    uint8_t n = 16 + 36*r + 6*g + b;
     return n;
 }
 
@@ -156,7 +157,7 @@ static inline int emit_ansi256(int is_bg, char *out, uint32_t rgb) {
     return (int)(p - out);
 }
 
-// ChatGPT used
+// AI was used to help write this function
 static inline int emit_truecolor(int is_bg, char *out, uint32_t rgb)
 {
     uint8_t r = TG_R(rgb);
@@ -215,7 +216,7 @@ static inline int write_color_code(uint32_t bg, uint32_t fg,
     int char_count = 0;
     int c;
     if (fg != prevfg) {
-        if (char_count + colsize >= bufsize) {
+        if (colsize > bufsize - char_count) {
             *overflow = 1;
             return char_count;
         }
@@ -226,7 +227,7 @@ static inline int write_color_code(uint32_t bg, uint32_t fg,
     }
 
     if (bg != prevbg && opt->use_background) {
-        if (char_count + colsize >= bufsize) {
+        if (colsize > bufsize - char_count) {
             *overflow = 1;
             return char_count;
         }
@@ -241,7 +242,7 @@ static inline int write_color_code(uint32_t bg, uint32_t fg,
 
 // --------------
 
-static inline size_t convert_ascii(uint32_t ch, char *out, size_t out_size, char empty_char) {
+static inline int convert_ascii(uint32_t ch, char *out, size_t out_size, char empty_char) {
     if (out_size <= 1) {
         return 0;
     }
@@ -257,7 +258,7 @@ static inline size_t convert_ascii(uint32_t ch, char *out, size_t out_size, char
     }
     return 1;
 }
-static inline size_t convert_utf8(uint32_t ch, char *out, size_t out_size, char empty_char) {
+static inline int convert_utf8(uint32_t ch, char *out, size_t out_size, char empty_char) {
     if (ch == 0 && out_size >= 1) {
         out[0] = empty_char;
         return 1;
@@ -285,7 +286,7 @@ static size_t convert(tg_cell *buf,
                       char *out, size_t out_size,
                       size_t width, size_t height,
                       const tg_convert_opts *opt,
-                      size_t (*convertfn)(uint32_t ch, char *out, size_t out_size, char empty_char)) {
+                      int (*convertfn)(uint32_t ch, char *out, size_t out_size, char empty_char)) {
 
     int end_space_needed = opt->append_color_reset ? 5 : 1;
     int color_overflow = 0;

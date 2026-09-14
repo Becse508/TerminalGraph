@@ -20,5 +20,6 @@ int tg_draw_line(tg_cell *buffer,
                tg_point end,
                tg_line_cells chars);
 
-// (ChatGPT used) Draws a line between `start` and `end` using braille characters for precision
+// AI was used to help write this function
+// Draws a line between `start` and `end` using braille characters for precision
 void tg_draw_line_braille(tg_cell *buffer, tg_point bufsize, tg_point start, tg_point end, uint32_t bg, uint32_t fg, float density);

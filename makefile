@@ -1,4 +1,5 @@
-CFLAGS = -O0 -g -Wall -Wextra
+CFLAGS = -O0 -g -Wall -Wextra -Wpedantic -Wconversion -Wshadow \
+		 -Wno-missing-braces -Wno-missing-field-initializers
 LDLIBS = -lm
 
 objects = buffer.o canvas.o converters.o drawing.o graph.o

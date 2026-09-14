@@ -169,7 +169,21 @@ static error_t parse_opts(int key, char *arg, struct argp_state *state) {
                 }
             }
             fprintf(stderr, "Invalid color format\n");
-            return 1;
+            exit(1);
+            break;
+        
+        case 502:
+            copt.use_background = 1;
+            break;
+        case 503:
+            copt.append_color_reset = 0;
+            break;
+        case 504:
+            if (strlen(arg) != 1) {
+                fputs("--empty-char can only be one character!", stderr);
+                exit(1);
+            }
+            copt.empty_char = arg[0];
             break;
         
         case 300:
