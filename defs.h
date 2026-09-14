@@ -112,7 +112,7 @@ typedef struct {
     tg_cell downtilt;
 } tg_line_cells;
 typedef struct {
-    tg_cell cell;
+    tg_cell base;
     union {
         tg_cell top;
         tg_cell left;
@@ -156,7 +156,7 @@ typedef struct
 
     union {
         tg_line_cells line_cells; // used if mode is TG_LINE_CELLS
-        tg_border_cells step_cells; // used if mode is TG_STEPS_CELLS
+        tg_border_cells step_cells; // used if mode is TG_STEP_CELLS
         // tg_cell pillar_cell; // used if mode is TG_PILLAR_CELLS
 
         struct {
@@ -206,11 +206,11 @@ typedef struct {
     int unset; // set to 1 to ignore value and let the program decide it
 } tg_autoval;
 
-typedef enum {
-    TG_NOIGNORE,
-    TG_IGNORE_FULL,
-    TG_IGNORE_LEAVESPACE
-} tg_ignore_mode;
+// typedef enum {
+//     TG_NOIGNORE,
+//     TG_IGNORE_FULL,
+//     TG_IGNORE_LEAVESPACE
+// } tg_ignore_mode;
 typedef struct {
     tg_autoval min;
     tg_autoval max;
@@ -235,6 +235,8 @@ typedef struct
     tg_indicator_opts indicator;
 
 } tg_render_opts;
+
+
 
 
 static inline tg_render_opts tg_default_render_opts() {
@@ -267,10 +269,6 @@ static inline tg_render_opts tg_default_render_opts() {
                 .cells = TG_GRID_CELLS_BORDER_VERT(0, 0x555555)
             } 
         },
-        .line = {
-            .mode = TG_LINE_CELLS,
-            .line_cells = TG_LINE_CELLS_DEFAULT(0, 0x00FF00)
-        },
         .node = {0},
         .indicator = {
             .x = {
@@ -289,15 +287,28 @@ static inline tg_render_opts tg_default_render_opts() {
     };
 }
 
-static inline tg_render_opts tg_default_render_opts_braille() {
+static inline tg_render_opts tg_default_render_opts_line(uint32_t bg, uint32_t fg) {
+    tg_render_opts opt = tg_default_render_opts();
+    opt.line.mode = TG_LINE_CELLS;
+    opt.line.line_cells = TG_LINE_CELLS_DEFAULT(bg, fg);
+    return opt;
+}
+
+static inline tg_render_opts tg_default_render_opts_braille(uint32_t bg, uint32_t fg) {
     tg_render_opts opt = tg_default_render_opts();
     opt.line = (tg_line_opts){
         .mode = TG_LINE_BRAILLE,
         .braille = {
             .density = 1,
-            .bg = 0,
-            .fg = 0x00FF00
+            .bg = bg,
+            .fg = fg
         },
     };
     return opt;
+}
+static inline tg_render_opts tg_default_render_opts_steps(uint32_t bg, uint32_t fg) {
+    tg_render_opts opt = tg_default_render_opts();
+    opt.line.mode = TG_STEP_CELLS;
+    opt.line.step_cells = TG_BORDER_CELLS_ROUNDED(bg, fg);
+    return  opt;
 }

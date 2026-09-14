@@ -226,15 +226,15 @@ static error_t parse_opts(int key, char *arg, struct argp_state *state) {
             opt.indicator.x.count = opt.grid.horizontal.count;
             break;
         case 413:
-            PARSE_COLOR(opt.grid.vertical.cells.cell.fg)
-            SET_GRID_COL(opt.grid.vertical.cells, fg, opt.grid.vertical.cells.cell.fg)
-            SET_GRID_COL(opt.grid.horizontal.cells, fg, opt.grid.vertical.cells.cell.fg)
+            PARSE_COLOR(opt.grid.vertical.cells.base.fg)
+            SET_GRID_COL(opt.grid.vertical.cells, fg, opt.grid.vertical.cells.base.fg)
+            SET_GRID_COL(opt.grid.horizontal.cells, fg, opt.grid.vertical.cells.base.fg)
             break;
         case 414:
             copt.use_background = 1;
-            PARSE_COLOR(opt.grid.horizontal.cells.cell.bg)
-            SET_GRID_COL(opt.grid.vertical.cells, bg, opt.grid.vertical.cells.cell.bg)
-            SET_GRID_COL(opt.grid.horizontal.cells, bg, opt.grid.vertical.cells.cell.bg)
+            PARSE_COLOR(opt.grid.horizontal.cells.base.bg)
+            SET_GRID_COL(opt.grid.vertical.cells, bg, opt.grid.vertical.cells.base.bg)
+            SET_GRID_COL(opt.grid.horizontal.cells, bg, opt.grid.vertical.cells.base.bg)
             break;
 
         case 421:
@@ -290,7 +290,7 @@ static struct argp argp = {options, parse_opts, args_doc, doc};
 
 int main(int argc, char *argv[]) {
     struct arguments args;
-    opt = tg_default_render_opts_braille();
+    opt = tg_default_render_opts_braille(0, 0x00FF00);
     copt = tg_default_convert_opts();
     
     // get terminal size on unix with ioctl

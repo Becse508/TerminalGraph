@@ -99,7 +99,7 @@ void tg_draw_grid(tg_cell *buf,
         
         for (int y = area.top + 1; y < area.bottom - 1; y++)
         {
-            buf[width * y + pos] = opt->vertical.cells.cell;
+            buf[width * y + pos] = opt->vertical.cells.base;
         }
     }
 
@@ -110,7 +110,7 @@ void tg_draw_grid(tg_cell *buf,
 
         for (int x = area.left + 1; x < area.right - 1; x++)
         {
-            buf[width * pos + x] = opt->horizontal.cells.cell;
+            buf[width * pos + x] = opt->horizontal.cells.base;
         }
     }
 
@@ -134,7 +134,7 @@ void tg_draw_grid(tg_cell *buf,
         if (opt->draw_crosses) {
             for (int i = 0; i < opt->vertical.count; i++) {
                 buf[width * pos + tg_map_x(area, i, opt->vertical.count)] = (tg_cell){
-                    GRID_CROSS, opt->horizontal.cells.cell.bg, opt->horizontal.cells.cell.fg
+                    GRID_CROSS, opt->horizontal.cells.base.bg, opt->horizontal.cells.base.fg
                 };
             }
         }
