@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "drawing.h"
 #include "buffer.h"
+#include "defs.h"
 
 void tg_draw_borders(tg_cell *buffer, tg_point bufsize, tg_border_cells chars) {
     if (bufsize.x * bufsize.y == 0) return;
@@ -108,6 +109,53 @@ int tg_draw_line(tg_cell *buffer,
         }
         
         error |= tg_buffer_set_safe(buffer, x0, y0, bufsize.x, bufsize.y, pixel);
+    }
+
+    return error;
+}
+
+int tg_draw_steps(tg_cell *buffer,
+                  tg_point bufsize,
+                  tg_point start,
+                  tg_point end,
+                  tg_border_cells cells) {
+    
+    int error = 0;
+    
+    int x0, x1, y0, y1;
+    if (start.x < end.x) {
+        x0 = start.x;
+        y0 = start.y;
+        x1 = end.x;
+        y1 = end.y;
+    }
+    else {
+        x0 = end.x;
+        y0 = end.y;
+        x1 = start.x;
+        y1 = start.y;
+    }
+
+    int sx = (x0 < x1) ? 1 : -1;
+    int sy = (y0 == y1) ? 0 : (y0 < y1) ? 1 : -1;
+
+    for (;++x0 <= x1;) {
+        error |= tg_buffer_set_safe(buffer, x0, y0, bufsize.x, bufsize.y, cells.horizontal);
+    }
+
+    if (sy == -1) {
+        error |= tg_buffer_set_safe(buffer, x1, y0, bufsize.x, bufsize.y, cells.bottomright);
+        for (;--y0 > y1;) {
+            error |= tg_buffer_set_safe(buffer, x1, y0, bufsize.x, bufsize.y, cells.vertical);
+        }
+        error |= tg_buffer_set_safe(buffer, x1, y0, bufsize.x, bufsize.y, cells.topleft);
+    }
+    else if (sy == 1) {
+        error |= tg_buffer_set_safe(buffer, x1, y0, bufsize.x, bufsize.y, cells.topright);
+        for (;++y0 < y1;) {
+            error |= tg_buffer_set_safe(buffer, x1, y0, bufsize.x, bufsize.y, cells.vertical);
+        }
+        error |= tg_buffer_set_safe(buffer, x1, y0, bufsize.x, bufsize.y, cells.bottomleft);
     }
 
     return error;

@@ -20,6 +20,14 @@ typedef struct
     (tg_cell){0x2514, bg, fg}, \
     (tg_cell){0x2518, bg, fg}  \
 }
+#define TG_BORDER_CELLS_ROUNDED(bg, fg) (tg_border_cells){ \
+    (tg_cell){0x2500, bg, fg}, \
+    (tg_cell){0x2502, bg, fg}, \
+    (tg_cell){0x256D, bg, fg}, \
+    (tg_cell){0x256E, bg, fg}, \
+    (tg_cell){0x2570, bg, fg}, \
+    (tg_cell){0x256F, bg, fg}  \
+}
 // ━┃┏┓┗┛
 #define TG_BORDER_CELLS_BOLD(bg, fg) (tg_border_cells){ \
     (tg_cell){0x2501, bg, fg}, \
@@ -133,9 +141,13 @@ typedef struct
 } tg_canvas;
 
 typedef enum {
-    TG_MODE_NODRAW,
-    TG_MODE_CELLS,
-    TG_MODE_BRAILLE
+    TG_NODRAW,
+    TG_LINE_CELLS,
+    TG_LINE_BRAILLE,
+    TG_STEP_CELLS,
+    // TG_STEP_BRAILLE,
+    // TR_PILLAR_CELLS,
+    // TG_PILLAR_BRAILLE,
 } tg_line_mode;
 
 typedef struct
@@ -143,7 +155,9 @@ typedef struct
     tg_line_mode mode;
 
     union {
-        tg_line_cells cells;
+        tg_line_cells line_cells; // used if mode is TG_LINE_CELLS
+        tg_border_cells step_cells; // used if mode is TG_STEPS_CELLS
+        // tg_cell pillar_cell; // used if mode is TG_PILLAR_CELLS
 
         struct {
             float density;
@@ -254,8 +268,8 @@ static inline tg_render_opts tg_default_render_opts() {
             } 
         },
         .line = {
-            .mode = TG_MODE_CELLS,
-            .cells = TG_LINE_CELLS_DEFAULT(0, 0x00FF00)
+            .mode = TG_LINE_CELLS,
+            .line_cells = TG_LINE_CELLS_DEFAULT(0, 0x00FF00)
         },
         .node = {0},
         .indicator = {
@@ -278,7 +292,7 @@ static inline tg_render_opts tg_default_render_opts() {
 static inline tg_render_opts tg_default_render_opts_braille() {
     tg_render_opts opt = tg_default_render_opts();
     opt.line = (tg_line_opts){
-        .mode = TG_MODE_BRAILLE,
+        .mode = TG_LINE_BRAILLE,
         .braille = {
             .density = 1,
             .bg = 0,

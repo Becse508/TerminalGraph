@@ -9,8 +9,8 @@ static tg_point calc_node_pos(tg_rect area, float datax, float datay, float minx
     int sizex = area.right - area.left - 1;
     int sizey = area.bottom - area.top - 1;
 
-    int x = area.left + (datax - minx) / dx * sizex;
-    int y = area.bottom - 1 - (datay - miny) / dy * sizey;
+    int x = area.left + (int)roundf((datax - minx) / dx * sizex);
+    int y = area.bottom - 1 - (int)roundf((datay - miny) / dy * sizey);
 
     return (tg_point){x, y};
 }
@@ -164,11 +164,14 @@ void tg_draw_lines(tg_cell *buf,
     for (size_t i = 1; i < count; i++)
     {
         current_pos = calc_node_pos(area, datax[i], datay[i], m.minx, m.miny, dx, dy);
-        if (opt->mode == TG_MODE_CELLS) {
-            tg_draw_line(buf, bufsize, prev_pos, current_pos, opt->cells);
+        if (opt->mode == TG_LINE_CELLS) {
+            tg_draw_line(buf, bufsize, prev_pos, current_pos, opt->line_cells);
         }
-        else if (opt->mode == TG_MODE_BRAILLE) {
+        else if (opt->mode == TG_LINE_BRAILLE) {
             tg_draw_line_braille(buf, bufsize, prev_pos, current_pos, opt->braille.bg, opt->braille.fg, opt->braille.density);
+        }
+        else if (opt->mode == TG_STEP_CELLS) {
+            tg_draw_steps(buf, bufsize, prev_pos, current_pos, opt->step_cells);
         }
 
         prev_pos = current_pos;
@@ -267,7 +270,7 @@ void tg_render_minmax(tg_cell *buf,
     if (opt->grid.vertical.count > 0 || opt->grid.horizontal.count > 0) {
         tg_draw_grid(buf, opt->width, area, &opt->grid);
     }
-    if (opt->line.mode != TG_MODE_NODRAW) {
+    if (opt->line.mode != TG_NODRAW) {
         tg_draw_lines(buf,
                       opt->width, opt->height, area,
                       datax, datay, count,
